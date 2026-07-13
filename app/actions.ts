@@ -5,13 +5,13 @@ import { requireAdmin, setAdminSession } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { randomUUID } from "crypto";
-import { mkdir, writeFile } from "fs/promises";
+import { mkdir, unlink, writeFile } from "fs/promises";
 import path from "path";
 
 const value = (form: FormData, key: string) => String(form.get(key) || "").trim();
 const collaborationOptions = new Set(["بازاریابی", "سرمایه گذاری", "خرید محصول", "صادرات", "فرآوری و بسته بندی", "سایر"]);
 const maxImageSize = 2 * 1024 * 1024;
-const uploadDir = path.join(process.cwd(), "public", "uploads");
+const uploadDir = path.join(process.cwd(), "storage", "uploads");
 const allowedImages = new Map([
   ["image/jpeg", ".jpg"],
   ["image/png", ".png"],
@@ -34,6 +34,28 @@ async function saveImage(form: FormData, key: string) {
   const filename = `${randomUUID()}${extension}`;
   await writeFile(path.join(uploadDir, filename), Buffer.from(await file.arrayBuffer()));
   return `/uploads/${filename}`;
+}
+
+async function deleteImage(imageUrl: string | null | undefined) {
+  if (!imageUrl) return;
+
+  const pathname = new URL(imageUrl, "http://localhost").pathname;
+  const match = pathname.match(/^\/uploads\/([0-9a-f-]{36}\.(?:jpe?g|png|webp|gif|avif|bmp|svg))$/i);
+  if (!match) return;
+
+  const filename = match[1];
+  const candidates = [
+    path.join(process.cwd(), "storage", "uploads", filename),
+    path.join(process.cwd(), "public", "uploads", filename),
+  ];
+
+  for (const filePath of candidates) {
+    try {
+      await unlink(filePath);
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+    }
+  }
 }
 
 export async function submitLead(_: { ok: boolean; error?: string }, form: FormData): Promise<{ ok: boolean; error?: string }> {
@@ -92,6 +114,12 @@ export async function login(_: { error?: string }, form: FormData): Promise<{ er
 
 export async function updateContent(form: FormData) {
   await requireAdmin();
+  const [currentContent, currentSponsors] = await Promise.all([
+    prisma.siteContent.findUnique({ where: { id: 1 }, select: { heroImageUrl: true } }),
+    prisma.sponsor.findMany({ select: { order: true, imageUrl: true } }),
+  ]);
+  const sponsorsByOrder = new Map(currentSponsors.map((sponsor) => [sponsor.order, sponsor]));
+  const removeHeroImage = form.get("removeHeroImage") === "on";
   let heroImageUrl: string | null = null;
   try {
     heroImageUrl = await saveImage(form, "heroImage");
@@ -107,16 +135,18 @@ export async function updateContent(form: FormData) {
       heroTitle: value(form, "heroTitle"),
       heroDescription: value(form, "heroDescription"),
       heroCta: value(form, "heroCta"),
-      heroImageUrl,
+      heroImageUrl: heroImageUrl ?? (removeHeroImage ? null : currentContent?.heroImageUrl ?? null),
     },
     update: {
       heroEyebrow: value(form, "heroEyebrow"),
       heroTitle: value(form, "heroTitle"),
       heroDescription: value(form, "heroDescription"),
       heroCta: value(form, "heroCta"),
-      ...(heroImageUrl ? { heroImageUrl } : {}),
+      heroImageUrl: heroImageUrl ?? (removeHeroImage ? null : currentContent?.heroImageUrl ?? null),
     },
   });
+
+  if (heroImageUrl || removeHeroImage) await deleteImage(currentContent?.heroImageUrl);
 
   for (let number = 1; number <= 3; number++) {
     await prisma.stage.upsert({
@@ -130,10 +160,13 @@ export async function updateContent(form: FormData) {
     const name = value(form, `sponsorName${order}`);
     const label = value(form, `sponsorLabel${order}`);
     const href = value(form, `sponsorHref${order}`) || "#";
+    const currentSponsor = sponsorsByOrder.get(order);
+    const removeSponsorImage = form.get(`removeSponsorImage${order}`) === "on";
     let imageUrl: string | null = null;
 
     if (!name) {
       await prisma.sponsor.deleteMany({ where: { order } });
+      await deleteImage(currentSponsor?.imageUrl);
       continue;
     }
 
@@ -145,13 +178,16 @@ export async function updateContent(form: FormData) {
 
     await prisma.sponsor.upsert({
       where: { order },
-      create: { order, name, label: label || name.slice(0, 2), href, imageUrl },
-      update: { name, label: label || name.slice(0, 2), href, ...(imageUrl ? { imageUrl } : {}) },
+      create: { order, name, label: label || name.slice(0, 2), href, imageUrl: imageUrl ?? (removeSponsorImage ? null : currentSponsor?.imageUrl ?? null) },
+      update: { name, label: label || name.slice(0, 2), href, imageUrl: imageUrl ?? (removeSponsorImage ? null : currentSponsor?.imageUrl ?? null) },
     });
+
+    if (imageUrl || removeSponsorImage) await deleteImage(currentSponsor?.imageUrl);
   }
 
   revalidatePath("/");
   revalidatePath("/admin");
+  redirect("/admin?saved=1#content");
 }
 
 export async function deleteSubmission(form: FormData) {

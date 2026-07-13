@@ -7,8 +7,10 @@ export const dynamic = "force-dynamic";
 
 const date = (d: Date) => new Intl.DateTimeFormat("fa-IR", { dateStyle: "medium", timeStyle: "short" }).format(d);
 
-export default async function AdminPage() {
+export default async function AdminPage({ searchParams }: { searchParams?: Promise<{ saved?: string }> }) {
   await requireAdmin();
+  const params = await searchParams;
+  const saved = params?.saved === "1";
   const [content, stages, submissions, sponsors] = await Promise.all([
     prisma.siteContent.findUnique({ where: { id: 1 } }),
     prisma.stage.findMany({ orderBy: { number: "asc" } }),
@@ -113,7 +115,8 @@ export default async function AdminPage() {
               <p>تغییرات پس از ذخیره، بلافاصله در سایت نمایش داده می‌شوند.</p>
             </div>
           </div>
-          <form action={updateContent} className="content-form" encType="multipart/form-data">
+          <form action={updateContent} className="content-form">
+            {saved && <p className="admin-success">تغییرات با موفقیت ذخیره شد.</p>}
             <h3>بنر اصلی</h3>
             <div className="admin-grid">
               <label>
@@ -136,6 +139,9 @@ export default async function AdminPage() {
                 تصویر بنر اصلی
                 {content.heroImageUrl && <img src={content.heroImageUrl} alt="تصویر فعلی بنر اصلی" />}
                 <input name="heroImage" type="file" accept="image/jpeg,image/png,image/webp,image/gif,image/avif,image/bmp,image/svg+xml" />
+                {content.heroImageUrl && (
+                  <span className="remove-image"><input name="removeHeroImage" type="checkbox" /> حذف تصویر فعلی</span>
+                )}
                 <small>حداکثر ۲ مگابایت؛ فرمت‌های رایج تصویر مجاز هستند.</small>
               </label>
             </div>
@@ -177,6 +183,9 @@ export default async function AdminPage() {
                     تصویر لوگو
                     {sponsor?.imageUrl && <img src={sponsor.imageUrl} alt={`لوگوی ${sponsor.name}`} />}
                     <input name={`sponsorImage${order}`} type="file" accept="image/jpeg,image/png,image/webp,image/gif,image/avif,image/bmp,image/svg+xml" />
+                    {sponsor?.imageUrl && (
+                      <span className="remove-image"><input name={`removeSponsorImage${order}`} type="checkbox" /> حذف تصویر فعلی</span>
+                    )}
                     <small>حداکثر ۲ مگابایت</small>
                   </label>
                 </div>

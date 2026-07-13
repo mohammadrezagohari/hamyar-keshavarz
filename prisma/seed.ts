@@ -56,6 +56,24 @@ async function seedLocations() {
   }
 }
 
+const defaultSponsors = [
+  { order: 1, name: "بانک کشاورزی", label: "بک", href: "#" },
+  { order: 2, name: "صندوق توسعه روستایی", label: "صت", href: "#" },
+  { order: 3, name: "اتاق بازرگانی", label: "اب", href: "#" },
+  { order: 4, name: "شتاب‌دهنده روستا", label: "شر", href: "#" },
+  { order: 5, name: "تعاونی تولید", label: "تت", href: "#" },
+] as const;
+
+async function seedSponsors() {
+  for (const sponsor of defaultSponsors) {
+    await prisma.sponsor.upsert({
+      where: { order: sponsor.order },
+      update: {},
+      create: sponsor,
+    });
+  }
+}
+
 async function main() {
   await prisma.siteContent.upsert({
     where: { id: 1 },
@@ -80,6 +98,7 @@ async function main() {
   }
 
   await seedLocations();
+  await seedSponsors();
 }
 
 main().finally(() => prisma.$disconnect());

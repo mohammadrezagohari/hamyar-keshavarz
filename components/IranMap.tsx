@@ -140,7 +140,7 @@ export function IranMap() {
             </a>
           )}
         </div>
-        <figcaption>نقشه تعاملی Leaflet بر پایه OpenStreetMap</figcaption>
+        <figcaption>ایران سرزمین مردان آزاد</figcaption>
       </figure>
     </section>
   );

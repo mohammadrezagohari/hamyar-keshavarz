@@ -1,12 +1,14 @@
-const sponsors = [
-  { name: "بانک کشاورزی", label: "بک", href: "#" },
-  { name: "صندوق توسعه روستایی", label: "صت", href: "#" },
-  { name: "اتاق بازرگانی", label: "اب", href: "#" },
-  { name: "شتاب‌دهنده روستا", label: "شر", href: "#" },
-  { name: "تعاونی تولید", label: "تت", href: "#" },
-];
+type Sponsor = {
+  id: number;
+  name: string;
+  label: string;
+  href: string;
+  imageUrl: string | null;
+};
 
-export function SponsorsStrip() {
+export function SponsorsStrip({ sponsors }: { sponsors: Sponsor[] }) {
+  if (sponsors.length === 0) return null;
+
   return (
     <section className="sponsors" aria-labelledby="sponsors-title">
       <div className="sponsors-inner">
@@ -16,8 +18,8 @@ export function SponsorsStrip() {
         </div>
         <div className="sponsor-list">
           {sponsors.map((sponsor) => (
-            <a key={sponsor.name} href={sponsor.href} aria-label={sponsor.name} className="sponsor-logo">
-              <span>{sponsor.label}</span>
+            <a key={sponsor.id} href={sponsor.href || "#"} aria-label={sponsor.name} className="sponsor-logo">
+              {sponsor.imageUrl ? <img src={sponsor.imageUrl} alt="" /> : <span>{sponsor.label}</span>}
               <b>{sponsor.name}</b>
             </a>
           ))}

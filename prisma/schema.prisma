@@ -13,6 +13,7 @@ model SiteContent {
   heroTitle       String
   heroDescription String
   heroCta         String
+  heroImageUrl    String?
   updatedAt       DateTime @updatedAt
 }
 
@@ -21,6 +22,15 @@ model Stage {
   number      Int    @unique
   title       String
   description String
+}
+
+model Sponsor {
+  id       Int     @id @default(autoincrement())
+  order    Int     @unique
+  name     String
+  label    String
+  href     String
+  imageUrl String?
 }
 
 model Submission {

@@ -9,13 +9,15 @@ const date = (d: Date) => new Intl.DateTimeFormat("fa-IR", { dateStyle: "medium"
 
 export default async function AdminPage() {
   await requireAdmin();
-  const [content, stages, submissions] = await Promise.all([
+  const [content, stages, submissions, sponsors] = await Promise.all([
     prisma.siteContent.findUnique({ where: { id: 1 } }),
     prisma.stage.findMany({ orderBy: { number: "asc" } }),
     prisma.submission.findMany({ orderBy: { createdAt: "desc" } }),
+    prisma.sponsor.findMany({ orderBy: { order: "asc" } }),
   ]);
 
   if (!content) return null;
+  const sponsorSlots = Array.from({ length: 5 }, (_, index) => sponsors.find((item) => item.order === index + 1));
 
   return (
     <main className="admin-shell">
@@ -28,6 +30,9 @@ export default async function AdminPage() {
         </a>
         <a href="#content">
           <Save size={19} /> محتوای سایت
+        </a>
+        <a href="#sponsors">
+          <UsersRound size={19} /> حامیان کار
         </a>
         <a href="/" target="_blank">
           مشاهده سایت <ExternalLink size={16} />
@@ -108,7 +113,7 @@ export default async function AdminPage() {
               <p>تغییرات پس از ذخیره، بلافاصله در سایت نمایش داده می‌شوند.</p>
             </div>
           </div>
-          <form action={updateContent} className="content-form">
+          <form action={updateContent} className="content-form" encType="multipart/form-data">
             <h3>بنر اصلی</h3>
             <div className="admin-grid">
               <label>
@@ -127,6 +132,12 @@ export default async function AdminPage() {
                 توضیحات
                 <textarea name="heroDescription" defaultValue={content.heroDescription} rows={3} />
               </label>
+              <label className="full upload-field">
+                تصویر بنر اصلی
+                {content.heroImageUrl && <img src={content.heroImageUrl} alt="تصویر فعلی بنر اصلی" />}
+                <input name="heroImage" type="file" accept="image/jpeg,image/png,image/webp,image/gif,image/avif,image/bmp,image/svg+xml" />
+                <small>حداکثر ۲ مگابایت؛ فرمت‌های رایج تصویر مجاز هستند.</small>
+              </label>
             </div>
 
             <h3>مراحل همکاری</h3>
@@ -143,6 +154,34 @@ export default async function AdminPage() {
                 </label>
               </div>
             ))}
+
+            <h3 id="sponsors">حامیان کار</h3>
+            {sponsorSlots.map((sponsor, index) => {
+              const order = index + 1;
+              return (
+                <div className="sponsor-edit" key={order}>
+                  <b>حامی {order}</b>
+                  <label>
+                    نام حامی
+                    <input name={`sponsorName${order}`} defaultValue={sponsor?.name || ""} placeholder="مثلا بانک کشاورزی" />
+                  </label>
+                  <label>
+                    متن کوتاه لوگو
+                    <input name={`sponsorLabel${order}`} defaultValue={sponsor?.label || ""} placeholder="مثلا بک" maxLength={4} />
+                  </label>
+                  <label>
+                    لینک
+                    <input name={`sponsorHref${order}`} defaultValue={sponsor?.href || "#"} dir="ltr" placeholder="https://example.com" />
+                  </label>
+                  <label className="upload-field">
+                    تصویر لوگو
+                    {sponsor?.imageUrl && <img src={sponsor.imageUrl} alt={`لوگوی ${sponsor.name}`} />}
+                    <input name={`sponsorImage${order}`} type="file" accept="image/jpeg,image/png,image/webp,image/gif,image/avif,image/bmp,image/svg+xml" />
+                    <small>حداکثر ۲ مگابایت</small>
+                  </label>
+                </div>
+              );
+            })}
             <button className="save">
               <Save size={18} /> ذخیره همه تغییرات
             </button>

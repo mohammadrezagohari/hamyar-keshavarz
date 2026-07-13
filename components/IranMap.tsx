@@ -1,21 +1,147 @@
-const cities = [
-  ["تهران",48,28],["تبریز",24,20],["ارومیه",16,25],["اردبیل",32,17],["رشت",38,18],["ساری",55,19],
-  ["گرگان",65,21],["مشهد",83,28],["بجنورد",76,21],["سمنان",61,32],["قزوین",41,27],["کرج",45,27],
-  ["قم",48,36],["اراک",42,43],["همدان",34,39],["زنجان",32,28],["سنندج",25,35],["کرمانشاه",25,43],
-  ["ایلام",22,51],["خرم‌آباد",32,51],["اهواز",29,62],["شهرکرد",42,55],["اصفهان",50,50],["یاسوج",42,64],
-  ["شیراز",49,71],["بوشهر",38,75],["یزد",63,53],["کرمان",68,67],["بندرعباس",65,85],["زاهدان",86,66],["بیرجند",81,47],
+"use client";
+
+import { useEffect, useRef, useState } from "react";
+
+const leafletCss = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";
+const leafletJs = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";
+
+const activityPoints = [
+  { name: "تهران", lat: 35.6892, lng: 51.389 },
+  { name: "تبریز", lat: 38.0962, lng: 46.2738 },
+  { name: "رشت", lat: 37.2808, lng: 49.5832 },
+  { name: "ساری", lat: 36.5659, lng: 53.0586 },
+  { name: "مشهد", lat: 36.2605, lng: 59.6168 },
+  { name: "اصفهان", lat: 32.6546, lng: 51.668 },
+  { name: "شیراز", lat: 29.5918, lng: 52.5837 },
+  { name: "کرمان", lat: 30.2839, lng: 57.0834 },
+  { name: "اهواز", lat: 31.3183, lng: 48.6706 },
+  { name: "بندرعباس", lat: 27.1832, lng: 56.2666 },
 ] as const;
 
+type LeafletApi = {
+  map: (element: HTMLDivElement, options: Record<string, unknown>) => LeafletMap;
+  tileLayer: (url: string, options: Record<string, unknown>) => { addTo: (map: LeafletMap) => void };
+  divIcon: (options: Record<string, unknown>) => unknown;
+  marker: (latLng: [number, number], options: Record<string, unknown>) => { addTo: (map: LeafletMap) => { bindTooltip: (text: string, options: Record<string, unknown>) => void } };
+};
+
+type LeafletMap = {
+  setView: (latLng: [number, number], zoom: number) => LeafletMap;
+  remove: () => void;
+};
+
+declare global {
+  interface Window {
+    L?: LeafletApi;
+    __leafletLoading?: Promise<void>;
+  }
+}
+
+function loadLeaflet() {
+  if (window.L) return Promise.resolve();
+  if (window.__leafletLoading) return window.__leafletLoading;
+
+  window.__leafletLoading = new Promise<void>((resolve, reject) => {
+    if (!document.querySelector(`link[href="${leafletCss}"]`)) {
+      const link = document.createElement("link");
+      link.rel = "stylesheet";
+      link.href = leafletCss;
+      document.head.appendChild(link);
+    }
+
+    const existingScript = document.querySelector<HTMLScriptElement>(`script[src="${leafletJs}"]`);
+    if (existingScript) {
+      existingScript.addEventListener("load", () => resolve(), { once: true });
+      existingScript.addEventListener("error", () => reject(new Error("Leaflet failed to load")), { once: true });
+      return;
+    }
+
+    const script = document.createElement("script");
+    script.src = leafletJs;
+    script.async = true;
+    script.onload = () => resolve();
+    script.onerror = () => reject(new Error("Leaflet failed to load"));
+    document.body.appendChild(script);
+  });
+
+  return window.__leafletLoading;
+}
+
 export function IranMap() {
-  return <section className="map-section">
-    <div className="map-copy"><span className="eyebrow">یک شبکه، به وسعت ایران</span><h2>هر نقطه، یک فرصت<br/>برای رشد و آبادانی</h2><p>از شمال تا جنوب، کنار تولیدکنندگان و همراهان محلی هستیم تا هیچ ظرفیت ارزشمندی دور از نگاه نماند.</p><div className="map-stat"><b>۳۱</b><span>استان در مسیر همراهی</span></div></div>
-    <div className="map-wrap" aria-label="نقشه مراکز استان‌های ایران">
-      <svg viewBox="0 0 100 100" role="img">
-        <defs><linearGradient id="iranFill" x1="0" x2="1"><stop stopColor="#e9dfc5"/><stop offset="1" stopColor="#c9d7b7"/></linearGradient></defs>
-        <path className="iran" d="M10 21 L20 12 32 11 42 16 52 13 62 18 76 18 91 30 88 42 94 50 89 58 92 72 82 77 75 91 64 89 58 78 48 79 41 72 29 67 24 57 15 54 18 43 9 36Z"/>
-        <path className="province-lines" d="M20 13l5 27m7-29l8 33m3-28l-3 57m13-59l-2 65m11-61l-5 70m19-70L66 88M17 42l72 1M23 56l66 3M34 68l48 9"/>
-        {cities.map(([name, x, y], index) => <g key={name} className="city" style={{ animationDelay: `${index * .18}s` }}><circle className="pulse" cx={x} cy={y} r="2.8"/><circle cx={x} cy={y} r="1.25"/><text x={x} y={y - 3.5}>{name}</text></g>)}
-      </svg>
-    </div>
-  </section>;
+  const mapElement = useRef<HTMLDivElement>(null);
+  const mapInstance = useRef<LeafletMap | null>(null);
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+
+    loadLeaflet()
+      .then(() => {
+        if (!active || !mapElement.current || !window.L || mapInstance.current) return;
+
+        const map = window.L.map(mapElement.current, {
+          attributionControl: true,
+          scrollWheelZoom: false,
+          zoomControl: true,
+        }).setView([32.7, 53.7], 5);
+
+        window.L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+          attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+          maxZoom: 18,
+        }).addTo(map);
+
+        const icon = window.L.divIcon({
+          className: "leaflet-city-pin",
+          html: "<span></span>",
+          iconSize: [18, 18],
+          iconAnchor: [9, 9],
+        });
+
+        for (const point of activityPoints) {
+          window.L
+            .marker([point.lat, point.lng], { icon })
+            .addTo(map)
+            .bindTooltip(point.name, { direction: "top", offset: [0, -9], permanent: false });
+        }
+
+        mapInstance.current = map;
+      })
+      .catch(() => {
+        if (active) setFailed(true);
+      });
+
+    return () => {
+      active = false;
+      mapInstance.current?.remove();
+      mapInstance.current = null;
+    };
+  }, []);
+
+  return (
+    <section className="map-section">
+      <div className="map-copy">
+        <span className="eyebrow">یک شبکه، به وسعت ایران</span>
+        <h2>
+          هر نقطه، یک فرصت
+          <br />
+          برای رشد و آبادانی
+        </h2>
+        <p>از شمال تا جنوب، کنار تولیدکنندگان و همراهان محلی هستیم تا هیچ ظرفیت ارزشمندی دور از نگاه نماند.</p>
+        <div className="map-stat">
+          <b>۳۱</b>
+          <span>استان در مسیر همراهی</span>
+        </div>
+      </div>
+      <figure className="map-wrap" aria-label="نقشه واقعی ایران با نقاط فعالیت">
+        <div className="leaflet-map" ref={mapElement}>
+          {failed && (
+            <a href="https://www.openstreetmap.org/#map=5/32.7/53.7" target="_blank" rel="noreferrer">
+              مشاهده نقشه ایران در OpenStreetMap
+            </a>
+          )}
+        </div>
+        <figcaption>نقشه تعاملی Leaflet بر پایه OpenStreetMap</figcaption>
+      </figure>
+    </section>
+  );
 }

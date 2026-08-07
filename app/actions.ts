@@ -114,10 +114,12 @@ export async function login(_: { error?: string }, form: FormData): Promise<{ er
 
 export async function updateContent(form: FormData) {
   await requireAdmin();
-  const [currentContent, currentSponsors] = await Promise.all([
+  const [currentContent, currentStages, currentSponsors] = await Promise.all([
     prisma.siteContent.findUnique({ where: { id: 1 }, select: { heroImageUrl: true } }),
+    prisma.stage.findMany({ select: { number: true, iconImageUrl: true } }),
     prisma.sponsor.findMany({ select: { order: true, imageUrl: true } }),
   ]);
+  const stagesByNumber = new Map(currentStages.map((stage) => [stage.number, stage]));
   const sponsorsByOrder = new Map(currentSponsors.map((sponsor) => [sponsor.order, sponsor]));
   const removeHeroImage = form.get("removeHeroImage") === "on";
   let heroImageUrl: string | null = null;
@@ -136,6 +138,15 @@ export async function updateContent(form: FormData) {
       heroDescription: value(form, "heroDescription"),
       heroCta: value(form, "heroCta"),
       heroImageUrl: heroImageUrl ?? (removeHeroImage ? null : currentContent?.heroImageUrl ?? null),
+      showSponsors: form.get("showSponsors") === "on",
+      mapEyebrow: value(form, "mapEyebrow"),
+      mapTitle: value(form, "mapTitle"),
+      mapDescription: value(form, "mapDescription"),
+      mapStatNumber: value(form, "mapStatNumber"),
+      mapStatLabel: value(form, "mapStatLabel"),
+      mapCaption: value(form, "mapCaption"),
+      storyTitle: value(form, "storyTitle"),
+      storyContent: value(form, "storyContent"),
     },
     update: {
       heroEyebrow: value(form, "heroEyebrow"),
@@ -143,17 +154,46 @@ export async function updateContent(form: FormData) {
       heroDescription: value(form, "heroDescription"),
       heroCta: value(form, "heroCta"),
       heroImageUrl: heroImageUrl ?? (removeHeroImage ? null : currentContent?.heroImageUrl ?? null),
+      showSponsors: form.get("showSponsors") === "on",
+      mapEyebrow: value(form, "mapEyebrow"),
+      mapTitle: value(form, "mapTitle"),
+      mapDescription: value(form, "mapDescription"),
+      mapStatNumber: value(form, "mapStatNumber"),
+      mapStatLabel: value(form, "mapStatLabel"),
+      mapCaption: value(form, "mapCaption"),
+      storyTitle: value(form, "storyTitle"),
+      storyContent: value(form, "storyContent"),
     },
   });
 
   if (heroImageUrl || removeHeroImage) await deleteImage(currentContent?.heroImageUrl);
 
   for (let number = 1; number <= 3; number++) {
+    const currentStage = stagesByNumber.get(number);
+    const removeStageIcon = form.get(`removeStageIcon${number}`) === "on";
+    let iconImageUrl: string | null = null;
+    try {
+      iconImageUrl = await saveImage(form, `stageIcon${number}`);
+    } catch (error) {
+      throw new Error(error instanceof Error ? error.message : "آپلود آیکون مرحله ناموفق بود.");
+    }
+
     await prisma.stage.upsert({
       where: { number },
-      create: { number, title: value(form, `stageTitle${number}`), description: value(form, `stageDescription${number}`) },
-      update: { title: value(form, `stageTitle${number}`), description: value(form, `stageDescription${number}`) },
+      create: {
+        number,
+        title: value(form, `stageTitle${number}`),
+        description: value(form, `stageDescription${number}`),
+        iconImageUrl,
+      },
+      update: {
+        title: value(form, `stageTitle${number}`),
+        description: value(form, `stageDescription${number}`),
+        iconImageUrl: iconImageUrl ?? (removeStageIcon ? null : currentStage?.iconImageUrl ?? null),
+      },
     });
+
+    if (iconImageUrl || removeStageIcon) await deleteImage(currentStage?.iconImageUrl);
   }
 
   for (let order = 1; order <= 5; order++) {

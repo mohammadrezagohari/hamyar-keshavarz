@@ -1,4 +1,4 @@
-# کشاورز‌یار
+# کشاورزیار
 
 لندینگ فارسی و راست‌چین برای ارتباط کشاورزان محلی با متقاضیان همکاری و مشارکت. محتوای بنر و مراحل همکاری از پنل مدیریت قابل ویرایش است و درخواست‌های کاربران در دیتابیس ذخیره می‌شوند.
 
@@ -167,7 +167,7 @@ npm run dev
 ابتدا دامنه واقعی و رمزهای امن را در `.env` تنظیم کنید:
 
 ```env
-NEXT_PUBLIC_SITE_URL="https://example.ir"
+NEXT_PUBLIC_SITE_URL="https://hamyarkeshavarz.com"
 ADMIN_PASSWORD="a-strong-password"
 SESSION_SECRET="a-long-and-random-secret"
 ```

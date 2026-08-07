@@ -25,6 +25,7 @@ export function LeadForm({ locations }: { locations: Location[] }) {
   const [type, setType] = useState<"partner" | "farmer">("partner");
   const [province, setProvince] = useState("");
   const [collaboration, setCollaboration] = useState(collaborationOptions[0]);
+  const [showSuccess, setShowSuccess] = useState(false);
   const [state, action, pending] = useActionState(submitLead, initial);
 
   const cities = useMemo(
@@ -37,15 +38,15 @@ export function LeadForm({ locations }: { locations: Location[] }) {
       document.querySelector<HTMLFormElement>("#lead-form")?.reset();
       setProvince("");
       setCollaboration(collaborationOptions[0]);
+      setShowSuccess(true);
+
+      const timer = window.setTimeout(() => setShowSuccess(false), 10_000);
+      return () => window.clearTimeout(timer);
     }
-  }, [state.ok]);
+  }, [state]);
 
   return (
     <div className="form-card">
-      <div className="form-head">
-        <span>ثبت درخواست همکاری</span>
-        <h2>{type === "partner" ? "همیاران کشاورز" : "کشاورزان"}</h2>
-      </div>
       <div className="switcher" aria-label="انتخاب نوع فرم">
         <button
           aria-pressed={type === "partner"}
@@ -65,6 +66,10 @@ export function LeadForm({ locations }: { locations: Location[] }) {
         </button>
       </div>
       <form id="lead-form" action={action}>
+        <div className="form-inner-head">
+          <span>ثبت درخواست همکاری</span>
+          <h2>{type === "partner" ? "همیاران کشاورز" : "کشاورزان"}</h2>
+        </div>
         <input type="hidden" name="type" value={type} />
         <div className="field-grid">
           <label>
@@ -135,9 +140,9 @@ export function LeadForm({ locations }: { locations: Location[] }) {
             {state.error}
           </p>
         )}
-        {state.ok && (
+        {state.ok && showSuccess && (
           <p className="form-message success" role="status">
-            <CheckCircle2 size={19} aria-hidden="true" /> اطلاعات شما ثبت شد؛ به‌زودی با شما تماس می‌گیریم.
+            <CheckCircle2 size={21} aria-hidden="true" /> اطلاعات با موفقیت ثبت شد، تیم کارشناسی ما با شما تماس می گیرند
           </p>
         )}
         <button className="submit" disabled={pending}>

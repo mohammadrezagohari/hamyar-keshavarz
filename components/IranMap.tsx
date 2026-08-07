@@ -67,7 +67,16 @@ function loadLeaflet() {
   return window.__leafletLoading;
 }
 
-export function IranMap() {
+type MapContent = {
+  eyebrow: string;
+  title: string;
+  description: string;
+  statNumber: string;
+  statLabel: string;
+  caption: string;
+};
+
+export function IranMap({ content }: { content: MapContent }) {
   const mapElement = useRef<HTMLDivElement>(null);
   const mapInstance = useRef<LeafletMap | null>(null);
   const [failed, setFailed] = useState(false);
@@ -120,16 +129,12 @@ export function IranMap() {
   return (
     <section className="map-section">
       <div className="map-copy">
-        <span className="eyebrow">یک شبکه، به وسعت ایران</span>
-        <h2>
-          هر نقطه، یک فرصت
-          <br />
-          برای رشد و آبادانی
-        </h2>
-        <p>از شمال تا جنوب، کنار تولیدکنندگان و همراهان محلی هستیم تا هیچ ظرفیت ارزشمندی دور از نگاه نماند.</p>
+        <span className="eyebrow">{content.eyebrow}</span>
+        <h2>{content.title}</h2>
+        <p>{content.description}</p>
         <div className="map-stat">
-          <b>۳۱</b>
-          <span>استان در مسیر همراهی</span>
+          <b>{content.statNumber}</b>
+          <span>{content.statLabel}</span>
         </div>
       </div>
       <figure className="map-wrap" aria-label="نقشه واقعی ایران با نقاط فعالیت">
@@ -140,7 +145,7 @@ export function IranMap() {
             </a>
           )}
         </div>
-        <figcaption>ایران سرزمین مردان آزاد</figcaption>
+        <figcaption>{content.caption}</figcaption>
       </figure>
     </section>
   );

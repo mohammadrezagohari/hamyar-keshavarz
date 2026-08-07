@@ -14,6 +14,15 @@ model SiteContent {
   heroDescription String
   heroCta         String
   heroImageUrl    String?
+  showSponsors    Boolean  @default(true)
+  mapEyebrow      String   @default("یک شبکه، به وسعت ایران")
+  mapTitle        String   @default("هر نقطه، یک فرصت\nبرای رشد و آبادانی")
+  mapDescription  String   @default("از شمال تا جنوب، کنار تولیدکنندگان و همراهان محلی هستیم تا هیچ ظرفیت ارزشمندی دور از نگاه نماند.")
+  mapStatNumber   String   @default("۳۱")
+  mapStatLabel    String   @default("استان در مسیر همراهی")
+  mapCaption      String   @default("ایران سرزمین مردان آزاد")
+  storyTitle      String   @default("کشاورزیار این‌طوری شروع شد که")
+  storyContent    String   @default("کشاورزیار از یک باور ساده شکل گرفت؛ اینکه ظرفیت‌های ارزشمند روستاهای ایران، شایسته دیده‌شدن و رشد هستند. ما تلاش می‌کنیم میان کشاورزان پرتلاش و همراهانی که دغدغه آبادانی دارند، پلی مطمئن و ماندگار بسازیم.")
   updatedAt       DateTime @updatedAt
 }
 
@@ -22,6 +31,7 @@ model Stage {
   number      Int    @unique
   title       String
   description String
+  iconImageUrl String?
 }
 
 model Sponsor {

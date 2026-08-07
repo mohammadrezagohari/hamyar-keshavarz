@@ -87,6 +87,14 @@ async function main() {
     },
   });
 
+  // Rename only the original legacy heading, preserving any custom CMS title.
+  await prisma.siteContent.updateMany({
+    where: {
+      storyTitle: { in: ["همیار کشاورز این طوری شروع شد که", "همیار کشاورز این طوری شروع شد ک"] },
+    },
+    data: { storyTitle: "کشاورزیار این‌طوری شروع شد که" },
+  });
+
   const stages = [
     [1, "معرفی و ثبت اطلاعات", "محصول، ظرفیت روستا یا زمینه همکاری خود را در چند دقیقه برای ما ثبت کنید."],
     [2, "بررسی و برقراری ارتباط", "تیم کشاورزیار اطلاعات را بررسی می‌کند و افراد و فرصت‌های مناسب را به هم متصل می‌کند."],

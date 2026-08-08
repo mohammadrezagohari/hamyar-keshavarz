@@ -56,20 +56,85 @@ async function seedLocations() {
   }
 }
 
-const defaultSponsors = [
-  { order: 1, name: "بانک کشاورزی", label: "بک", href: "#" },
-  { order: 2, name: "صندوق توسعه روستایی", label: "صت", href: "#" },
-  { order: 3, name: "اتاق بازرگانی", label: "اب", href: "#" },
-  { order: 4, name: "شتاب‌دهنده روستا", label: "شر", href: "#" },
-  { order: 5, name: "تعاونی تولید", label: "تت", href: "#" },
+const siteContent = {
+  id: 1,
+  heroEyebrow: "از دل خاک، برای فردای ایران",
+  heroTitle: "پیوند کشاورزان محلی با فرصت‌های بزرگ",
+  heroDescription: "کشاورز‌یار پلی است میان تولیدکنندگان پرتلاش و کسانی که می‌خواهند در رشد پایدار روستاهای ایران سهیم باشند.",
+  heroCta: "به ما بپیوندید",
+  heroImageUrl: "/uploads/0aed3170-f9bb-4da1-8033-018063720e3c.webp",
+  showSponsors: true,
+  mapEyebrow: "یک شبکه، به وسعت ایران",
+  mapTitle: "هر نقطه، یک فرصت\r\nبرای رشد و آبادانی",
+  mapDescription: "از شمال تا جنوب، کنار تولیدکنندگان و همراهان محلی هستیم تا هیچ ظرفیت ارزشمندی دور از نگاه نماند.",
+  mapStatNumber: "۳۱",
+  mapStatLabel: "استان در مسیر همراهی",
+  mapCaption: "ایران سرزمین مردان آزاد",
+  storyTitle: "کشاورزیار این‌طوری شروع شد که",
+  storyContent: "کشاورزیار از یک باور ساده شکل گرفت؛ اینکه ظرفیت‌های ارزشمند روستاهای ایران، شایسته دیده‌شدن و رشد هستند. ما تلاش می‌کنیم میان کشاورزان پرتلاش و همراهانی که دغدغه آبادانی دارند، پلی مطمئن و ماندگار بسازیم.",
+  updatedAt: new Date("2026-08-07T20:39:58.236Z"),
+};
+
+const stages = [
+  {
+    number: 1,
+    title: "معرفی و ثبت اطلاعات",
+    description: "محصول، ظرفیت روستا یا زمینه همکاری خود را در چند دقیقه برای ما ثبت کنید.",
+    iconImageUrl: null,
+  },
+  {
+    number: 2,
+    title: "بررسی و برقراری ارتباط",
+    description: "تیم کشاورز‌یار اطلاعات را بررسی می‌کند و افراد و فرصت‌های مناسب را به هم متصل می‌کند.",
+    iconImageUrl: null,
+  },
+  {
+    number: 3,
+    title: "رشد و همراهی پایدار",
+    description: "همکاری آغاز می‌شود و از شکل‌گیری ارتباط تا رسیدن به نتیجه در کنار شما می‌مانیم.",
+    iconImageUrl: null,
+  },
+] as const;
+
+const sponsors = [
+  { order: 1, name: "تیم نرم افزاری گندم", label: "گندم", href: "https://gandom.link", imageUrl: "/uploads/ddde3f9a-47d7-436b-bd23-a7b168581775.png" },
+  { order: 2, name: "پزشک آموز", label: "صت", href: "#", imageUrl: "/uploads/a567ac4e-6842-433b-b15a-91b3af87f4fd.png" },
+  { order: 3, name: "دانشگاه علوم پزشکی", label: "علوم", href: "https://google.com", imageUrl: "/uploads/87024cc0-9b10-41ed-a173-b313ded26974.png" },
+  { order: 4, name: "شتاب‌دهنده روستا", label: "شر", href: "#", imageUrl: null },
+  { order: 5, name: "تعاونی تولید", label: "تت", href: "#", imageUrl: null },
+] as const;
+
+const submissions = [
+  { id: 1, type: "partner", name: "محمدرضا گوهری", phone: "09117184875", province: null, city: null, village: null, product: null, collaboration: "سایر: تستی", createdAt: new Date("2026-07-14T12:08:00.538Z") },
+  { id: 2, type: "farmer", name: "محمدرضا گوهری", phone: "09117184875", province: "مازندران", city: "ساری", village: "فرح آباد", product: "مرکبات", collaboration: null, createdAt: new Date("2026-07-14T12:08:59.834Z") },
+  { id: 3, type: "farmer", name: "دانیال جاجیمی", phone: "09111571689", province: "مازندران", city: "ساری", village: "بالا دزا", product: "هلو", collaboration: null, createdAt: new Date("2026-07-14T12:13:35.868Z") },
+  { id: 4, type: "partner", name: "mohammadreza gohari", phone: "09117184875", province: null, city: null, village: null, product: null, collaboration: "خرید محصول", createdAt: new Date("2026-07-14T12:14:03.171Z") },
+  { id: 5, type: "partner", name: "الکی", phone: "09117184875", province: null, city: null, village: null, product: null, collaboration: "بازاریابی", createdAt: new Date("2026-07-14T12:19:58.215Z") },
+  { id: 6, type: "partner", name: "تست", phone: "09371801145", province: null, city: null, village: null, product: null, collaboration: "صادرات", createdAt: new Date("2026-07-14T12:20:10.256Z") },
+  { id: 7, type: "partner", name: "رفاد ایران", phone: "09117184875", province: null, city: null, village: null, product: null, collaboration: "فرآوری و بسته بندی", createdAt: new Date("2026-07-14T12:20:18.282Z") },
+  { id: 8, type: "partner", name: "دوره آموزشی", phone: "09117778889", province: null, city: null, village: null, product: null, collaboration: "بازاریابی", createdAt: new Date("2026-07-14T12:20:36.329Z") },
+  { id: 9, type: "partner", name: "دوره پریمیر ودینگ", phone: "09117184875", province: null, city: null, village: null, product: null, collaboration: "فرآوری و بسته بندی", createdAt: new Date("2026-07-14T12:20:52.578Z") },
+  { id: 10, type: "partner", name: "mohammadreza", phone: "09117184875", province: null, city: null, village: null, product: null, collaboration: "بازاریابی", createdAt: new Date("2026-07-14T12:20:58.275Z") },
+  { id: 11, type: "partner", name: "دوره آموزشی", phone: "09117184875", province: null, city: null, village: null, product: null, collaboration: "بازاریابی", createdAt: new Date("2026-07-14T12:21:03.375Z") },
+  { id: 12, type: "partner", name: "Reza", phone: "09117184875", province: null, city: null, village: null, product: null, collaboration: "صادرات", createdAt: new Date("2026-07-14T12:21:09.765Z") },
 ] as const;
 
 async function seedSponsors() {
-  for (const sponsor of defaultSponsors) {
+  for (const sponsor of sponsors) {
     await prisma.sponsor.upsert({
       where: { order: sponsor.order },
-      update: {},
+      update: sponsor,
       create: sponsor,
+    });
+  }
+}
+
+async function seedSubmissions() {
+  for (const submission of submissions) {
+    await prisma.submission.upsert({
+      where: { id: submission.id },
+      update: submission,
+      create: submission,
     });
   }
 }
@@ -77,36 +142,17 @@ async function seedSponsors() {
 async function main() {
   await prisma.siteContent.upsert({
     where: { id: 1 },
-    update: {},
-    create: {
-      id: 1,
-      heroEyebrow: "از دل خاک، برای فردای ایران",
-      heroTitle: "پیوند کشاورزان محلی با فرصت‌های بزرگ",
-      heroDescription: "کشاورزیار پلی است میان تولیدکنندگان پرتلاش و کسانی که می‌خواهند در رشد پایدار روستاهای ایران سهیم باشند.",
-      heroCta: "به ما بپیوندید",
-    },
+    update: siteContent,
+    create: siteContent,
   });
 
-  // Rename only the original legacy heading, preserving any custom CMS title.
-  await prisma.siteContent.updateMany({
-    where: {
-      storyTitle: { in: ["همیار کشاورز این طوری شروع شد که", "همیار کشاورز این طوری شروع شد ک"] },
-    },
-    data: { storyTitle: "کشاورزیار این‌طوری شروع شد که" },
-  });
-
-  const stages = [
-    [1, "معرفی و ثبت اطلاعات", "محصول، ظرفیت روستا یا زمینه همکاری خود را در چند دقیقه برای ما ثبت کنید."],
-    [2, "بررسی و برقراری ارتباط", "تیم کشاورزیار اطلاعات را بررسی می‌کند و افراد و فرصت‌های مناسب را به هم متصل می‌کند."],
-    [3, "رشد و همراهی پایدار", "همکاری آغاز می‌شود و از شکل‌گیری ارتباط تا رسیدن به نتیجه در کنار شما می‌مانیم."],
-  ] as const;
-
-  for (const [number, title, description] of stages) {
-    await prisma.stage.upsert({ where: { number }, update: {}, create: { number, title, description } });
+  for (const stage of stages) {
+    await prisma.stage.upsert({ where: { number: stage.number }, update: stage, create: stage });
   }
 
   await seedLocations();
   await seedSponsors();
+  await seedSubmissions();
 }
 
 main().finally(() => prisma.$disconnect());

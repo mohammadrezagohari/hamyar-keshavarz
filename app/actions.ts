@@ -22,13 +22,24 @@ const allowedImages = new Map([
   ["image/svg+xml", ".svg"],
 ]);
 
-async function saveImage(form: FormData, key: string) {
+class UploadValidationError extends Error {}
+
+function validateImage(form: FormData, key: string, label = "تصویر") {
   const file = form.get(key);
   if (!(file instanceof File) || file.size === 0) return null;
-  if (file.size > maxImageSize) throw new Error("حجم هر تصویر باید حداکثر ۲ مگابایت باشد.");
+  if (file.size > maxImageSize) {
+    throw new UploadValidationError(`${label}: حجم فایل باید حداکثر ۲ مگابایت باشد.`);
+  }
+  if (!allowedImages.has(file.type)) {
+    throw new UploadValidationError(`${label}: فرمت فایل معتبر نیست. از JPG، PNG، WebP، GIF، AVIF، BMP یا SVG استفاده کنید.`);
+  }
+  return file;
+}
 
-  const extension = allowedImages.get(file.type);
-  if (!extension) throw new Error("فرمت تصویر معتبر نیست. از jpg، png، webp، gif، avif، bmp یا svg استفاده کنید.");
+async function saveImage(form: FormData, key: string) {
+  const file = validateImage(form, key);
+  if (!file) return null;
+  const extension = allowedImages.get(file.type)!;
 
   await mkdir(uploadDir, { recursive: true });
   const filename = `${randomUUID()}${extension}`;
@@ -67,7 +78,8 @@ export async function submitLead(_: { ok: boolean; error?: string }, form: FormD
     return { ok: false, error: "نام و شماره موبایل معتبر را وارد کنید." };
   }
 
-  if (type === "farmer") {
+  try {
+    if (type === "farmer") {
     const province = value(form, "province");
     const city = value(form, "city");
     const village = value(form, "village");
@@ -81,25 +93,29 @@ export async function submitLead(_: { ok: boolean; error?: string }, form: FormD
     if (!location) return { ok: false, error: "استان و شهرستان انتخاب‌شده معتبر نیست." };
 
     await prisma.submission.create({ data: { type, name, phone, province, city, village, product } });
-  } else {
-    const collaboration = value(form, "collaboration");
-    const collaborationOther = value(form, "collaborationOther");
+    } else {
+      const collaboration = value(form, "collaboration");
+      const collaborationOther = value(form, "collaborationOther");
 
-    if (!collaborationOptions.has(collaboration)) {
-      return { ok: false, error: "زمینه همکاری را انتخاب کنید." };
-    }
-    if (collaboration === "سایر" && !collaborationOther) {
-      return { ok: false, error: "توضیح زمینه همکاری را وارد کنید." };
-    }
+      if (!collaborationOptions.has(collaboration)) {
+        return { ok: false, error: "زمینه همکاری را انتخاب کنید." };
+      }
+      if (collaboration === "سایر" && !collaborationOther) {
+        return { ok: false, error: "توضیح زمینه همکاری را وارد کنید." };
+      }
 
-    await prisma.submission.create({
-      data: {
-        type: "partner",
-        name,
-        phone,
-        collaboration: collaboration === "سایر" ? `سایر: ${collaborationOther}` : collaboration,
-      },
-    });
+      await prisma.submission.create({
+        data: {
+          type: "partner",
+          name,
+          phone,
+          collaboration: collaboration === "سایر" ? `سایر: ${collaborationOther}` : collaboration,
+        },
+      });
+    }
+  } catch (error) {
+    console.error("Failed to save lead submission", error);
+    return { ok: false, error: "ثبت اطلاعات انجام نشد. لطفاً چند لحظه دیگر دوباره تلاش کنید." };
   }
 
   revalidatePath("/admin");
@@ -108,12 +124,24 @@ export async function submitLead(_: { ok: boolean; error?: string }, form: FormD
 
 export async function login(_: { error?: string }, form: FormData): Promise<{ error?: string }> {
   if (value(form, "password") !== process.env.ADMIN_PASSWORD) return { error: "رمز عبور صحیح نیست." };
-  await setAdminSession();
+  try {
+    await setAdminSession();
+  } catch (error) {
+    console.error("Failed to create admin session", error);
+    return { error: "ورود انجام نشد. لطفاً چند لحظه دیگر دوباره تلاش کنید." };
+  }
   redirect("/admin");
 }
 
-export async function updateContent(form: FormData) {
+export type ContentActionState = { ok: boolean; error?: string };
+
+export async function updateContent(_: ContentActionState, form: FormData): Promise<ContentActionState> {
   await requireAdmin();
+  try {
+    validateImage(form, "heroImage", "تصویر بنر اصلی");
+    for (let number = 1; number <= 3; number++) validateImage(form, `stageIcon${number}`, `آیکون مرحله ${number}`);
+    for (let order = 1; order <= 5; order++) validateImage(form, `sponsorImage${order}`, `تصویر حامی ${order}`);
+
   const [currentContent, currentStages, currentSponsors] = await Promise.all([
     prisma.siteContent.findUnique({ where: { id: 1 }, select: { heroImageUrl: true } }),
     prisma.stage.findMany({ select: { number: true, iconImageUrl: true } }),
@@ -122,12 +150,7 @@ export async function updateContent(form: FormData) {
   const stagesByNumber = new Map(currentStages.map((stage) => [stage.number, stage]));
   const sponsorsByOrder = new Map(currentSponsors.map((sponsor) => [sponsor.order, sponsor]));
   const removeHeroImage = form.get("removeHeroImage") === "on";
-  let heroImageUrl: string | null = null;
-  try {
-    heroImageUrl = await saveImage(form, "heroImage");
-  } catch (error) {
-    throw new Error(error instanceof Error ? error.message : "آپلود تصویر ناموفق بود.");
-  }
+  const heroImageUrl = await saveImage(form, "heroImage");
 
   await prisma.siteContent.upsert({
     where: { id: 1 },
@@ -171,12 +194,7 @@ export async function updateContent(form: FormData) {
   for (let number = 1; number <= 3; number++) {
     const currentStage = stagesByNumber.get(number);
     const removeStageIcon = form.get(`removeStageIcon${number}`) === "on";
-    let iconImageUrl: string | null = null;
-    try {
-      iconImageUrl = await saveImage(form, `stageIcon${number}`);
-    } catch (error) {
-      throw new Error(error instanceof Error ? error.message : "آپلود آیکون مرحله ناموفق بود.");
-    }
+    const iconImageUrl = await saveImage(form, `stageIcon${number}`);
 
     await prisma.stage.upsert({
       where: { number },
@@ -210,11 +228,7 @@ export async function updateContent(form: FormData) {
       continue;
     }
 
-    try {
-      imageUrl = await saveImage(form, `sponsorImage${order}`);
-    } catch (error) {
-      throw new Error(error instanceof Error ? error.message : "آپلود تصویر حامی ناموفق بود.");
-    }
+    imageUrl = await saveImage(form, `sponsorImage${order}`);
 
     await prisma.sponsor.upsert({
       where: { order },
@@ -227,7 +241,12 @@ export async function updateContent(form: FormData) {
 
   revalidatePath("/");
   revalidatePath("/admin");
-  redirect("/admin?saved=1#content");
+  return { ok: true };
+  } catch (error) {
+    if (error instanceof UploadValidationError) return { ok: false, error: error.message };
+    console.error("Failed to update site content", error);
+    return { ok: false, error: "ذخیره تغییرات انجام نشد. لطفاً دوباره تلاش کنید." };
+  }
 }
 
 export async function deleteSubmission(form: FormData) {

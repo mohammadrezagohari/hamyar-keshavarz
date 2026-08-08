@@ -1,4 +1,5 @@
-import { deleteSubmission, updateContent } from "@/app/actions";
+import { deleteSubmission } from "@/app/actions";
+import { AdminContentForm } from "@/components/AdminContentForm";
 import { requireAdmin } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { normalizeSubmissionType, submissionWhere } from "@/lib/submission-filters";
@@ -159,8 +160,7 @@ export default async function AdminPage({ searchParams }: { searchParams?: Promi
               <p>تغییرات پس از ذخیره، بلافاصله در سایت نمایش داده می‌شوند.</p>
             </div>
           </div>
-          <form action={updateContent} className="content-form">
-            {saved && <p className="admin-success">تغییرات با موفقیت ذخیره شد.</p>}
+          <AdminContentForm saved={saved}>
             <h3>بنر اصلی</h3>
             <div className="admin-grid">
               <label>
@@ -290,10 +290,7 @@ export default async function AdminPage({ searchParams }: { searchParams?: Promi
                 <small>برای ایجاد پاراگراف یا خط جدید، از Enter استفاده کنید.</small>
               </label>
             </div>
-            <button className="save">
-              <Save size={18} /> ذخیره همه تغییرات
-            </button>
-          </form>
+          </AdminContentForm>
         </section>
       </div>
     </main>

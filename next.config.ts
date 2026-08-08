@@ -4,8 +4,8 @@ const nextConfig: NextConfig = {
   compress: true,
   poweredByHeader: false,
   experimental: {
-    // The admin form can upload one 2 MB hero plus five 2 MB sponsor logos.
-    serverActions: { bodySizeLimit: "13mb" },
+    // Nine optional image fields can each contain a validated 2 MB file.
+    serverActions: { bodySizeLimit: "20mb" },
   },
 };
 

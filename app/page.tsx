@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { LeadForm } from "@/components/LeadForm";
 import { IranMap } from "@/components/IranMap";
 import { SponsorsStrip } from "@/components/SponsorsStrip";
+import { ValuesSection } from "@/components/ValuesSection";
 
 // The landing page is cached and regenerated after CMS updates via revalidatePath.
 export const revalidate = 3600;
@@ -13,11 +14,13 @@ const persianStepNumber = new Intl.NumberFormat("fa-IR", {
 });
 
 export default async function Home() {
-  const [content, stages, locations, sponsors] = await Promise.all([
+  const [content, stages, locations, sponsors, coreValues, mapProjects] = await Promise.all([
     prisma.siteContent.findUnique({ where: { id: 1 } }),
     prisma.stage.findMany({ orderBy: { number: "asc" } }),
     prisma.province.findMany({ include: { cities: { orderBy: { name: "asc" } } }, orderBy: { name: "asc" } }),
     prisma.sponsor.findMany({ orderBy: { order: "asc" } }),
+    prisma.coreValue.findMany({ orderBy: { order: "asc" } }),
+    prisma.mapProject.findMany({ orderBy: { order: "asc" } }),
   ]);
   if (!content) return <main className="empty">ابتدا دستور <code>npm run db:seed</code> را اجرا کنید.</main>;
   const structuredData = {
@@ -44,8 +47,9 @@ export default async function Home() {
       <div className="scroll">برای کشف بیشتر اسکرول کنید <ArrowDown size={15}/></div>
     </header>
     <section id="steps" className="steps"><div className="section-title"><span className="eyebrow">ساده، شفاف و همراهانه</span><h2>مسیر ما در سه قدم</h2><p>از اولین آشنایی تا ساختن یک همکاری ماندگار، قدم‌به‌قدم کنار هم پیش می‌رویم.</p></div><div className="steps-grid">{stages.map((stage, index) => <article key={stage.id}><div className="step-no">{persianStepNumber.format(stage.number)}</div>{stage.iconImageUrl && <div className="step-icon"><img src={stage.iconImageUrl} alt="" /></div>}<h3>{stage.title}</h3><p>{stage.description}</p>{index < stages.length - 1 && <span className="connector">••••••••</span>}</article>)}</div></section>
+    <ValuesSection title={content.valuesTitle} tagline={content.valuesTagline} values={coreValues} />
     <section id="join" className="join"><LeadForm locations={locations}/></section>
-    <div id="coverage"><IranMap content={{ eyebrow: content.mapEyebrow, title: content.mapTitle, description: content.mapDescription, statNumber: content.mapStatNumber, statLabel: content.mapStatLabel, caption: content.mapCaption }}/></div>
+    <div id="coverage"><IranMap caption={content.mapCaption} projects={mapProjects} /></div>
     {content.showSponsors && <SponsorsStrip sponsors={sponsors}/>}
     <section className="story" aria-labelledby="story-title">
       <div className="story-inner">

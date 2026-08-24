@@ -3,7 +3,7 @@ import { AdminContentForm } from "@/components/AdminContentForm";
 import { requireAdmin } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { normalizeSubmissionType, submissionWhere } from "@/lib/submission-filters";
-import { Download, ExternalLink, FileText, Save, Search, Trash2, UsersRound } from "lucide-react";
+import { BookOpen, Download, ExternalLink, FileText, FolderKanban, HeartHandshake, ImageIcon, ListChecks, Search, Trash2, UsersRound } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -24,15 +24,19 @@ export default async function AdminPage({ searchParams }: { searchParams?: Promi
   const totalPages = Math.max(1, Math.ceil(totalSubmissions / pageSize));
   const requestedPage = Math.max(1, Number.parseInt(params?.page || "1", 10) || 1);
   const currentPage = Math.min(requestedPage, totalPages);
-  const [content, stages, submissions, sponsors] = await Promise.all([
+  const [content, stages, submissions, sponsors, coreValues, mapProjects] = await Promise.all([
     prisma.siteContent.findUnique({ where: { id: 1 } }),
     prisma.stage.findMany({ orderBy: { number: "asc" } }),
     prisma.submission.findMany({ where, orderBy: { createdAt: "desc" }, skip: (currentPage - 1) * pageSize, take: pageSize }),
     prisma.sponsor.findMany({ orderBy: { order: "asc" } }),
+    prisma.coreValue.findMany({ orderBy: { order: "asc" } }),
+    prisma.mapProject.findMany({ orderBy: { order: "asc" } }),
   ]);
 
   if (!content) return null;
   const sponsorSlots = Array.from({ length: 5 }, (_, index) => sponsors.find((item) => item.order === index + 1));
+  const coreValueSlots = Array.from({ length: 3 }, (_, index) => coreValues.find((item) => item.order === index + 1));
+  const mapProjectSlots = Array.from({ length: 4 }, (_, index) => mapProjects.find((item) => item.order === index + 1));
   const queryString = new URLSearchParams({ ...(q ? { q } : {}), ...(type ? { type } : {}) }).toString();
   const pageHref = (page: number) => `/admin?${new URLSearchParams({ ...(q ? { q } : {}), ...(type ? { type } : {}), page: String(page) })}#requests`;
 
@@ -45,11 +49,23 @@ export default async function AdminPage({ searchParams }: { searchParams?: Promi
         <a className="selected" href="#requests">
           <UsersRound size={19} /> درخواست‌ها
         </a>
-        <a href="#content">
-          <Save size={19} /> محتوای سایت
+        <a href="#hero-content">
+          <ImageIcon size={19} /> بنر اصلی
+        </a>
+        <a href="#stages-content">
+          <ListChecks size={19} /> مراحل همکاری
+        </a>
+        <a href="#values-content">
+          <HeartHandshake size={19} /> ارزش‌های ما
+        </a>
+        <a href="#projects">
+          <FolderKanban size={19} /> پروژه‌ها
         </a>
         <a href="#sponsors">
           <UsersRound size={19} /> حامیان کار
+        </a>
+        <a href="#story-content">
+          <BookOpen size={19} /> داستان ما
         </a>
         <a href="/" target="_blank">
           مشاهده سایت <ExternalLink size={16} />
@@ -161,7 +177,7 @@ export default async function AdminPage({ searchParams }: { searchParams?: Promi
             </div>
           </div>
           <AdminContentForm saved={saved}>
-            <h3>بنر اصلی</h3>
+            <h3 id="hero-content">بنر اصلی</h3>
             <div className="admin-grid">
               <label>
                 متن بالای عنوان
@@ -190,7 +206,7 @@ export default async function AdminPage({ searchParams }: { searchParams?: Promi
               </label>
             </div>
 
-            <h3>مراحل همکاری</h3>
+            <h3 id="stages-content">مراحل همکاری</h3>
             {stages.map((stage) => (
               <div className="stage-edit" key={stage.id}>
                 <b>مرحله {stage.number}</b>
@@ -214,34 +230,77 @@ export default async function AdminPage({ searchParams }: { searchParams?: Promi
               </div>
             ))}
 
-            <h3>بخش نقشه ایران</h3>
+            <h3 id="values-content">بخش «ارزش‌های ما»</h3>
+            <div className="admin-grid values-content-fields">
+              <label>
+                عنوان بخش
+                <input name="valuesTitle" defaultValue={content.valuesTitle} placeholder="ارزش‌های ما" />
+              </label>
+              <label>
+                جمله معرفی
+                <input name="valuesTagline" defaultValue={content.valuesTagline} placeholder="تقویت ریشه‌هایمان | پرورش انگیزه‌مان | رسیدن به هدف واقعی‌مان" />
+              </label>
+            </div>
+            {coreValueSlots.map((coreValue, index) => {
+              const order = index + 1;
+              return (
+                <div className="core-value-edit" key={order}>
+                  <b>ارزش {order}</b>
+                  <label>
+                    عنوان
+                    <input name={`coreValueTitle${order}`} defaultValue={coreValue?.title || ""} />
+                  </label>
+                  <label>
+                    توضیحات
+                    <textarea name={`coreValueDescription${order}`} defaultValue={coreValue?.description || ""} rows={5} />
+                    <small>هر مورد را در یک خط جدا وارد کنید.</small>
+                  </label>
+                  <label className="upload-field core-value-icon-field">
+                    آیکون
+                    {coreValue?.iconImageUrl && <img src={coreValue.iconImageUrl} alt={`آیکون ${coreValue.title}`} />}
+                    <input name={`coreValueIcon${order}`} type="file" accept="image/jpeg,image/png,image/webp,image/gif,image/avif,image/bmp,image/svg+xml" />
+                    {coreValue?.iconImageUrl && (
+                      <span className="remove-image"><input name={`removeCoreValueIcon${order}`} type="checkbox" /> حذف آیکون فعلی</span>
+                    )}
+                    <small>حداکثر ۲ مگابایت؛ SVG، PNG، WebP یا JPG</small>
+                  </label>
+                </div>
+              );
+            })}
+
+            <h3 id="projects">پروژه‌های کنار نقشه</h3>
             <div className="admin-grid map-content-fields">
-              <label>
-                متن بالای عنوان
-                <input name="mapEyebrow" defaultValue={content.mapEyebrow} />
-              </label>
-              <label>
-                عدد آمار
-                <input name="mapStatNumber" defaultValue={content.mapStatNumber} placeholder="مثلاً ۳۱" />
-              </label>
+              <input type="hidden" name="mapEyebrow" defaultValue={content.mapEyebrow} />
+              <input type="hidden" name="mapStatNumber" defaultValue={content.mapStatNumber} />
+              <input type="hidden" name="mapTitle" defaultValue={content.mapTitle} />
+              <input type="hidden" name="mapDescription" defaultValue={content.mapDescription} />
+              <input type="hidden" name="mapStatLabel" defaultValue={content.mapStatLabel} />
               <label className="full">
-                عنوان اصلی
-                <textarea name="mapTitle" defaultValue={content.mapTitle} rows={2} />
-                <small>برای نمایش عنوان در چند خط، از Enter استفاده کنید.</small>
-              </label>
-              <label className="full">
-                توضیحات
-                <textarea name="mapDescription" defaultValue={content.mapDescription} rows={3} />
-              </label>
-              <label>
-                متن کنار آمار
-                <input name="mapStatLabel" defaultValue={content.mapStatLabel} />
-              </label>
-              <label>
                 زیرنویس نقشه
                 <input name="mapCaption" defaultValue={content.mapCaption} />
               </label>
             </div>
+            {mapProjectSlots.map((project, index) => {
+              const order = index + 1;
+              return (
+                <div className="map-project-edit" key={order}>
+                  <b>پروژه {order}</b>
+                  <label>
+                    عنوان پروژه
+                    <input name={`mapProjectTitle${order}`} defaultValue={project?.title || ""} placeholder="عنوان پروژه" />
+                  </label>
+                  <label>
+                    وضعیت
+                    <input name={`mapProjectStatus${order}`} defaultValue={project?.status || ""} placeholder="مثلاً در حال اجرا" />
+                  </label>
+                  <label className="project-description-field">
+                    توضیح کوتاه
+                    <textarea name={`mapProjectDescription${order}`} defaultValue={project?.description || ""} rows={2} placeholder="توضیح پروژه در حداکثر دو خط" />
+                  </label>
+                  <small>برای حذف این جایگاه، عنوان پروژه را خالی کنید.</small>
+                </div>
+              );
+            })}
 
             <h3 id="sponsors">حامیان کار</h3>
             <label className="visibility-toggle">
@@ -278,7 +337,7 @@ export default async function AdminPage({ searchParams }: { searchParams?: Promi
               );
             })}
 
-            <h3>بخش «داستان ما»</h3>
+            <h3 id="story-content">بخش «داستان ما»</h3>
             <div className="admin-grid story-content-fields">
               <label className="full">
                 عنوان بخش

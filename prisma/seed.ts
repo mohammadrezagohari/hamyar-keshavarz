@@ -64,6 +64,8 @@ const siteContent = {
   heroCta: "به ما بپیوندید",
   heroImageUrl: "/uploads/0aed3170-f9bb-4da1-8033-018063720e3c.webp",
   showSponsors: true,
+  valuesTitle: "ارزش‌های ما",
+  valuesTagline: "تقویت ریشه‌هایمان | پرورش انگیزه‌مان | رسیدن به هدف واقعی‌مان",
   mapEyebrow: "یک شبکه، به وسعت ایران",
   mapTitle: "هر نقطه، یک فرصت\r\nبرای رشد و آبادانی",
   mapDescription: "از شمال تا جنوب، کنار تولیدکنندگان و همراهان محلی هستیم تا هیچ ظرفیت ارزشمندی دور از نگاه نماند.",
@@ -93,6 +95,45 @@ const stages = [
     title: "رشد و همراهی پایدار",
     description: "همکاری آغاز می‌شود و از شکل‌گیری ارتباط تا رسیدن به نتیجه در کنار شما می‌مانیم.",
     iconImageUrl: null,
+  },
+] as const;
+
+const coreValues = [
+  {
+    order: 1,
+    title: "کشاورز اول",
+    description: "نیازهای کشاورزان را بر هر چیز دیگری مقدم داشتن.\nبرای یافتن راه‌های نوآورانه جهت توانمندسازی کشاورزان.\nفراتر رفتن از مرزها برای ارائه راه‌حل‌هایی برای مشکلات کشاورزان.",
+  },
+  {
+    order: 2,
+    title: "نوآوری و خلاقیت",
+    description: "برای همکاری بدون سلسله مراتب.\nداشتن اشتیاق برای حل مسئله.\nبرای به چالش کشیدن وضع موجود و تمرکز بر بهبود مستمر خودمان.",
+  },
+  {
+    order: 3,
+    title: "احترام",
+    description: "برای حفظ استقلال این سازمان.\nتا پاسخگوی اعمال باشیم.\nبرای ترویج تنوع و ایجاد فرهنگ کاری عادلانه و فراگیر.",
+  },
+] as const;
+
+const mapProjects = [
+  {
+    order: 1,
+    title: "توسعه باغ‌های مرکبات شمال",
+    description: "همراهی با باغداران محلی برای بهبود کیفیت محصول و ایجاد مسیر پایدار عرضه به بازار.",
+    status: "در حال اجرا",
+  },
+  {
+    order: 2,
+    title: "زنجیره تأمین محصولات روستایی",
+    description: "اتصال مستقیم تولیدکنندگان روستایی به ظرفیت‌های فروش و همکاری در سراسر کشور.",
+    status: "در مرحله توسعه",
+  },
+  {
+    order: 3,
+    title: "توانمندسازی کشاورزان محلی",
+    description: "شناسایی نیازهای واقعی کشاورزان و طراحی راهکارهای اجرایی متناسب با هر منطقه.",
+    status: "در حال بررسی",
   },
 ] as const;
 
@@ -148,6 +189,14 @@ async function main() {
 
   for (const stage of stages) {
     await prisma.stage.upsert({ where: { number: stage.number }, update: stage, create: stage });
+  }
+
+  for (const coreValue of coreValues) {
+    await prisma.coreValue.upsert({ where: { order: coreValue.order }, update: coreValue, create: coreValue });
+  }
+
+  for (const mapProject of mapProjects) {
+    await prisma.mapProject.upsert({ where: { order: mapProject.order }, update: mapProject, create: mapProject });
   }
 
   await seedLocations();

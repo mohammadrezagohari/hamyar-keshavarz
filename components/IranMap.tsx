@@ -67,16 +67,15 @@ function loadLeaflet() {
   return window.__leafletLoading;
 }
 
-type MapContent = {
-  eyebrow: string;
+type MapProject = {
+  id: number;
+  order: number;
   title: string;
   description: string;
-  statNumber: string;
-  statLabel: string;
-  caption: string;
+  status: string;
 };
 
-export function IranMap({ content }: { content: MapContent }) {
+export function IranMap({ caption, projects }: { caption: string; projects: MapProject[] }) {
   const mapElement = useRef<HTMLDivElement>(null);
   const mapInstance = useRef<LeafletMap | null>(null);
   const [failed, setFailed] = useState(false);
@@ -128,14 +127,14 @@ export function IranMap({ content }: { content: MapContent }) {
 
   return (
     <section className="map-section">
-      <div className="map-copy">
-        <span className="eyebrow">{content.eyebrow}</span>
-        <h2>{content.title}</h2>
-        <p>{content.description}</p>
-        <div className="map-stat">
-          <b>{content.statNumber}</b>
-          <span>{content.statLabel}</span>
-        </div>
+      <div className="map-projects" aria-label="پروژه‌های کشاورزیار">
+        {projects.map((project) => (
+          <article className="map-project-card" key={project.id}>
+            <span className="project-status">{project.status}</span>
+            <h3>{project.title}</h3>
+            <p>{project.description}</p>
+          </article>
+        ))}
       </div>
       <figure className="map-wrap" aria-label="نقشه واقعی ایران با نقاط فعالیت">
         <div className="leaflet-map" ref={mapElement}>
@@ -145,7 +144,7 @@ export function IranMap({ content }: { content: MapContent }) {
             </a>
           )}
         </div>
-        <figcaption>{content.caption}</figcaption>
+        <figcaption>{caption}</figcaption>
       </figure>
     </section>
   );

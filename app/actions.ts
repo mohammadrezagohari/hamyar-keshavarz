@@ -140,15 +140,18 @@ export async function updateContent(_: ContentActionState, form: FormData): Prom
   try {
     validateImage(form, "heroImage", "تصویر بنر اصلی");
     for (let number = 1; number <= 3; number++) validateImage(form, `stageIcon${number}`, `آیکون مرحله ${number}`);
+    for (let order = 1; order <= 3; order++) validateImage(form, `coreValueIcon${order}`, `آیکون ارزش ${order}`);
     for (let order = 1; order <= 5; order++) validateImage(form, `sponsorImage${order}`, `تصویر حامی ${order}`);
 
-  const [currentContent, currentStages, currentSponsors] = await Promise.all([
+  const [currentContent, currentStages, currentSponsors, currentCoreValues] = await Promise.all([
     prisma.siteContent.findUnique({ where: { id: 1 }, select: { heroImageUrl: true } }),
     prisma.stage.findMany({ select: { number: true, iconImageUrl: true } }),
     prisma.sponsor.findMany({ select: { order: true, imageUrl: true } }),
+    prisma.coreValue.findMany({ select: { order: true, iconImageUrl: true } }),
   ]);
   const stagesByNumber = new Map(currentStages.map((stage) => [stage.number, stage]));
   const sponsorsByOrder = new Map(currentSponsors.map((sponsor) => [sponsor.order, sponsor]));
+  const coreValuesByOrder = new Map(currentCoreValues.map((coreValue) => [coreValue.order, coreValue]));
   const removeHeroImage = form.get("removeHeroImage") === "on";
   const heroImageUrl = await saveImage(form, "heroImage");
 
@@ -162,6 +165,8 @@ export async function updateContent(_: ContentActionState, form: FormData): Prom
       heroCta: value(form, "heroCta"),
       heroImageUrl: heroImageUrl ?? (removeHeroImage ? null : currentContent?.heroImageUrl ?? null),
       showSponsors: form.get("showSponsors") === "on",
+      valuesTitle: value(form, "valuesTitle"),
+      valuesTagline: value(form, "valuesTagline"),
       mapEyebrow: value(form, "mapEyebrow"),
       mapTitle: value(form, "mapTitle"),
       mapDescription: value(form, "mapDescription"),
@@ -178,6 +183,8 @@ export async function updateContent(_: ContentActionState, form: FormData): Prom
       heroCta: value(form, "heroCta"),
       heroImageUrl: heroImageUrl ?? (removeHeroImage ? null : currentContent?.heroImageUrl ?? null),
       showSponsors: form.get("showSponsors") === "on",
+      valuesTitle: value(form, "valuesTitle"),
+      valuesTagline: value(form, "valuesTagline"),
       mapEyebrow: value(form, "mapEyebrow"),
       mapTitle: value(form, "mapTitle"),
       mapDescription: value(form, "mapDescription"),
@@ -212,6 +219,45 @@ export async function updateContent(_: ContentActionState, form: FormData): Prom
     });
 
     if (iconImageUrl || removeStageIcon) await deleteImage(currentStage?.iconImageUrl);
+  }
+
+  for (let order = 1; order <= 3; order++) {
+    const currentCoreValue = coreValuesByOrder.get(order);
+    const removeCoreValueIcon = form.get(`removeCoreValueIcon${order}`) === "on";
+    const iconImageUrl = await saveImage(form, `coreValueIcon${order}`);
+    const coreValue = {
+      order,
+      title: value(form, `coreValueTitle${order}`),
+      description: value(form, `coreValueDescription${order}`),
+      iconImageUrl: iconImageUrl ?? (removeCoreValueIcon ? null : currentCoreValue?.iconImageUrl ?? null),
+    };
+    await prisma.coreValue.upsert({
+      where: { order },
+      create: coreValue,
+      update: coreValue,
+    });
+
+    if (iconImageUrl || removeCoreValueIcon) await deleteImage(currentCoreValue?.iconImageUrl);
+  }
+
+  for (let order = 1; order <= 4; order++) {
+    const title = value(form, `mapProjectTitle${order}`);
+    if (!title) {
+      await prisma.mapProject.deleteMany({ where: { order } });
+      continue;
+    }
+
+    const mapProject = {
+      order,
+      title,
+      description: value(form, `mapProjectDescription${order}`),
+      status: value(form, `mapProjectStatus${order}`) || "بدون وضعیت",
+    };
+    await prisma.mapProject.upsert({
+      where: { order },
+      create: mapProject,
+      update: mapProject,
+    });
   }
 
   for (let order = 1; order <= 5; order++) {
